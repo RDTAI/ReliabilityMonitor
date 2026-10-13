@@ -1,0 +1,11 @@
+{
+  "title": "Post-deployment Reliability",
+  "uid": "reliability-monitor",
+  "schemaVersion": 39,
+  "panels": [
+    {"type":"timeseries","title":"OOD rate","gridPos":{"x":0,"y":0,"w":8,"h":8},"targets":[{"expr":"reliability_ood_rate"}]},
+    {"type":"timeseries","title":"Expected calibration error","gridPos":{"x":8,"y":0,"w":8,"h":8},"targets":[{"expr":"reliability_ece"}]},
+    {"type":"timeseries","title":"Worst-group coverage","gridPos":{"x":16,"y":0,"w":8,"h":8},"targets":[{"expr":"reliability_worst_group_coverage"}]}
+  ]
+}
+
