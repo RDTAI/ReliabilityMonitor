@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reliability-monitor"
+version = "0.1.0"
+description = "Post-deployment drift and conformal coverage monitoring"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24", "fastapi>=0.110", "uvicorn>=0.27", "duckdb>=1.0", "prometheus-client>=0.20"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "httpx>=0.27"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
