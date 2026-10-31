@@ -76,7 +76,18 @@ def unlabeled_metrics(reference: dict, current: dict) -> dict:
     }
 
 
-def labeled_metrics(current: dict, target_coverage: float = 0.9) -> dict:
+def wilson_interval(successes: int, n: int, z: float = 1.96) -> tuple[float, float]:
+    """95% Wilson score interval for a binomial proportion."""
+    if n == 0:
+        return float("nan"), float("nan")
+    p = successes / n
+    denominator = 1 + z * z / n
+    centre = (p + z * z / (2 * n)) / denominator
+    radius = z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / denominator
+    return float(max(0, centre - radius)), float(min(1, centre + radius))
+
+
+def labeled_metrics(current: dict, target_coverage: float = 0.9, min_group_size: int = 20) -> dict:
     y = np.asarray(current["label"], int)
     pred = np.asarray(current["predicted_class"], int)
     conf = _array(current["confidence"])
@@ -92,9 +103,25 @@ def labeled_metrics(current: dict, target_coverage: float = 0.9) -> dict:
         "confidence_error_curve": confidence_error_curve(conf, correct),
     }
     groups = np.asarray(current.get("group", ["all"] * len(y)), str)
-    group_cov = {str(g): float(covered[groups == g].mean()) for g in np.unique(groups)}
-    group_acc = {str(g): float(correct[groups == g].mean()) for g in np.unique(groups)}
+    group_cov, group_acc, reliability = {}, {}, {}
+    eligible = []
+    for group in np.unique(groups):
+        mask = groups == group
+        n = int(mask.sum())
+        cov = float(covered[mask].mean())
+        acc = float(correct[mask].mean())
+        low, high = wilson_interval(int(covered[mask].sum()), n)
+        name = str(group)
+        group_cov[name], group_acc[name] = cov, acc
+        reliability[name] = {"n": n, "coverage": cov, "coverage_ci_95": [low, high],
+                             "accuracy": acc,
+                             "status": "eligible" if n >= min_group_size else "insufficient_data"}
+        if n >= min_group_size:
+            eligible.append(cov)
     result.update({"subgroup_coverage": group_cov, "subgroup_accuracy": group_acc,
-                   "worst_group_coverage": min(group_cov.values()) if group_cov else None})
+                   "subgroup_reliability": reliability, "min_group_size": min_group_size,
+                   "worst_group_coverage": min(eligible) if eligible else None,
+                   "insufficient_groups": [g for g, row in reliability.items()
+                                           if row["status"] == "insufficient_data"]})
     return result
 
