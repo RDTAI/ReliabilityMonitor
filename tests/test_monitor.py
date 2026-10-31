@@ -37,3 +37,16 @@ def test_duckdb_joins_delayed_label(tmp_path):
     joined = store.window(labeled_only=True)
     assert len(joined) == 1
     assert joined[0]["label"] == 1
+
+
+def test_reference_persistence_and_model_version_filter(tmp_path):
+    store = EventStore(tmp_path / "events.duckdb")
+    ref = [event(i) | {"model_name": "classifier", "model_version": "v2"} for i in range(3)]
+    store.save_reference("baseline-v2", "classifier", "v2", ref, .95)
+    restored = store.get_reference("classifier", "v2")
+    assert restored["reference_id"] == "baseline-v2"
+    assert restored["target_coverage"] == .95
+    assert len(restored["events"]) == 3
+    store.log_prediction(event(10) | {"model_name": "classifier", "model_version": "v1"})
+    store.log_prediction(event(11) | {"model_name": "classifier", "model_version": "v2"})
+    assert [row["request_id"] for row in store.window(model_name="classifier", model_version="v2")] == ["11"]
