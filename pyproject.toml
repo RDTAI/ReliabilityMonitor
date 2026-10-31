@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "reliability-monitor"
-version = "0.1.0"
+version = "0.2.0"
 description = "Post-deployment drift and conformal coverage monitoring"
 requires-python = ">=3.10"
 dependencies = ["numpy>=1.24", "fastapi>=0.110", "uvicorn>=0.27", "duckdb>=1.0", "prometheus-client>=0.20"]
