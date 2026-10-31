@@ -13,6 +13,18 @@ model/API -> prediction event log -> drift monitor -> delayed labels
                                              alerts + report
 ```
 
+## v0.2 highlights
+
+- Reference profiles are persisted and versioned in DuckDB instead of being
+  lost when the API process restarts.
+- Prediction events carry `model_name` and `model_version`, and reports never
+  mix metrics from different deployed versions.
+- `GET /report` uses a configurable sliding window (24 hours by default).
+- Subgroup coverage includes 95% Wilson intervals and a minimum sample-size
+  guard; undersized groups are reported but excluded from worst-group alerts.
+- Prometheus exports drift, workload, delayed-label, accuracy, and coverage
+  gauges with model/version labels.
+
 ## Why two monitoring phases?
 
 **Before labels arrive**, the service monitors feature PSI, predicted-class
@@ -69,12 +81,14 @@ Interactive API documentation is then available at
 
 ## Event workflow
 
-Register a stable reference window with `POST /reference`, then log each model
+Register a stable reference window with `POST /references`, then log each model
 response with `POST /predictions`:
 
 ```json
 {
   "request_id": "case-1042",
+  "model_name": "pathology-classifier",
+  "model_version": "2026.10",
   "features": [0.2, -0.4, 1.1],
   "embedding": [0.14, -0.71],
   "predicted_class": 2,
@@ -91,7 +105,12 @@ When the outcome becomes available, send it independently:
 {"request_id": "case-1042", "label": 3}
 ```
 
-`GET /report` joins the available labels and explicitly returns counts for
+References contain the same model identity and are persisted with a unique
+`reference_id` and target coverage. `GET /references` lists active and historic
+profiles.
+
+`GET /report?model_name=pathology-classifier&model_version=2026.10&window_hours=24`
+joins the available labels and explicitly returns counts for
 `received` and `pending` labels. It never treats missing labels as errors or
 correct predictions.
 
@@ -115,13 +134,15 @@ docker compose up --build
 - Conformal coverage is the fraction of delayed true labels contained in the
   prediction set logged at inference time.
 - Worst-group coverage is the minimum observed coverage across supplied groups.
+- Each subgroup receives a 95% Wilson coverage interval. Groups smaller than
+  `min_group_size` (default 20) are marked `insufficient_data` and cannot fire a
+  worst-group alert.
 
 ## Production limitations
 
 This repository is an engineering and research prototype. PSI thresholds are
-heuristics; repeated window testing needs multiplicity-aware governance;
-subgroup estimates require minimum sample-size checks and uncertainty
-intervals; and labels may be missing non-randomly. A production rollout should
-also add authentication, schema/version tracking, alert deduplication,
-immutable model identifiers, retention policies, and privacy controls.
+heuristics; repeated window testing needs multiplicity-aware governance; and
+labels may be missing non-randomly. A production rollout should also add
+authentication, alert deduplication, retention policies, privacy controls,
+scheduled evaluation, and a real notification transport.
 
