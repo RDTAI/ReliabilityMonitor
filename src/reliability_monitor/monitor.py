@@ -33,11 +33,12 @@ def _columns(events):
 
 
 class ReliabilityMonitor:
-    def __init__(self, reference_events, *, target_coverage=.9, rules=DEFAULT_RULES):
+    def __init__(self, reference_events, *, target_coverage=.9, min_group_size=20, rules=DEFAULT_RULES):
         if not reference_events:
             raise ValueError("reference_events cannot be empty")
         self.reference = _columns(reference_events)
         self.target_coverage = target_coverage
+        self.min_group_size = min_group_size
         self.rules = tuple(rules)
 
     def evaluate(self, events):
@@ -53,7 +54,7 @@ class ReliabilityMonitor:
                 "covered": [e["label"] in e["prediction_set"] for e in labeled],
                 "group": [e.get("subgroup", "unknown") for e in labeled],
             }
-            metrics.update(labeled_metrics(labeled_input, self.target_coverage))
+            metrics.update(labeled_metrics(labeled_input, self.target_coverage, self.min_group_size))
         alerts = []
         for rule in self.rules:
             value = metrics.get(rule.metric)
