@@ -1,11 +1,18 @@
 {
-  "title": "Post-deployment Reliability",
+  "title": "Post-deployment Reliability v0.2",
   "uid": "reliability-monitor",
   "schemaVersion": 39,
+  "templating": {"list": [
+    {"name":"model","type":"query","datasource":"Prometheus","query":"label_values(reliability_ood_rate, model)"},
+    {"name":"version","type":"query","datasource":"Prometheus","query":"label_values(reliability_ood_rate{model=\"$model\"}, version)"}
+  ]},
   "panels": [
-    {"type":"timeseries","title":"OOD rate","gridPos":{"x":0,"y":0,"w":8,"h":8},"targets":[{"expr":"reliability_ood_rate"}]},
-    {"type":"timeseries","title":"Expected calibration error","gridPos":{"x":8,"y":0,"w":8,"h":8},"targets":[{"expr":"reliability_ece"}]},
-    {"type":"timeseries","title":"Worst-group coverage","gridPos":{"x":16,"y":0,"w":8,"h":8},"targets":[{"expr":"reliability_worst_group_coverage"}]}
+    {"type":"timeseries","title":"OOD rate","gridPos":{"x":0,"y":0,"w":8,"h":7},"targets":[{"expr":"reliability_ood_rate{model=\"$model\",version=\"$version\"}"}]},
+    {"type":"timeseries","title":"Expected calibration error","gridPos":{"x":8,"y":0,"w":8,"h":7},"targets":[{"expr":"reliability_ece{model=\"$model\",version=\"$version\"}"}]},
+    {"type":"timeseries","title":"Worst-group coverage","gridPos":{"x":16,"y":0,"w":8,"h":7},"targets":[{"expr":"reliability_worst_group_coverage{model=\"$model\",version=\"$version\"}"}]},
+    {"type":"timeseries","title":"Feature and confidence PSI","gridPos":{"x":0,"y":7,"w":12,"h":7},"targets":[{"expr":"reliability_feature_psi_max{model=\"$model\",version=\"$version\"}"},{"expr":"reliability_confidence_psi{model=\"$model\",version=\"$version\"}"}]},
+    {"type":"timeseries","title":"Embedding shift","gridPos":{"x":12,"y":7,"w":12,"h":7},"targets":[{"expr":"reliability_embedding_shift{model=\"$model\",version=\"$version\"}"}]},
+    {"type":"timeseries","title":"Accuracy and coverage","gridPos":{"x":0,"y":14,"w":12,"h":7},"targets":[{"expr":"reliability_accuracy{model=\"$model\",version=\"$version\"}"},{"expr":"reliability_coverage{model=\"$model\",version=\"$version\"}"}]},
+    {"type":"timeseries","title":"Label completion and set size","gridPos":{"x":12,"y":14,"w":12,"h":7},"targets":[{"expr":"reliability_label_completion_rate{model=\"$model\",version=\"$version\"}"},{"expr":"reliability_mean_set_size{model=\"$model\",version=\"$version\"}"}]}
   ]
 }
-
